@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "cobblescheduler",
+  "version": "${version}",
+  "name": "CobbleScheduler",
+  "description": "Nether Roof Nerf",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/cobblescheduler/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "ca.skynetcloud.cobblescheduler.client.CobbleSchedulerClient"
+    ],
+    "main": [
+      "ca.skynetcloud.cobblescheduler.CobbleScheduler"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
