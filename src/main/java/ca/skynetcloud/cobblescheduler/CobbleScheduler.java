@@ -1,23 +1,16 @@
 package ca.skynetcloud.cobblescheduler;
 
 
+import ca.skynetcloud.cobblescheduler.commands.SchedulerCommands;
 import ca.skynetcloud.cobblescheduler.config.Config;
-import ca.skynetcloud.cobblescheduler.utils.DateUtils;
-import ca.skynetcloud.cobblescheduler.utils.PokemonData;
-import com.cobblemon.mod.common.CobblemonEntities;
-import com.cobblemon.mod.common.api.Priority;
-import com.cobblemon.mod.common.api.events.CobblemonEvents;
-import com.cobblemon.mod.common.api.pokemon.PokemonSpecies;
-import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
-import com.cobblemon.mod.common.pokemon.Pokemon;
-import com.cobblemon.mod.common.pokemon.Species;
+import ca.skynetcloud.cobblescheduler.event.HolidaySpawnEvent;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
-import kotlin.Unit;
 import net.fabricmc.api.ModInitializer;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.entity.Entity;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +18,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Random;
 
 public class CobbleScheduler implements ModInitializer {
 
@@ -33,100 +25,30 @@ public class CobbleScheduler implements ModInitializer {
 
 
     private static final String NAME = "CobbleScheduler";
-    private static final String VERSION = "";
+    private static final String AUTHORS = "SkyNetCloud";
+    private static final String VERSION = "0.0.1";
     private static final File CONFIG_FILE = new File("config/CobbleHolidays/holidays.json");
-    private static Config config;
-    private static final Gson gson = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
-    private long lastSpawnTime = 0;
-    private final long SPAWN_COOLDOWN = config.SpawnCoolDown;
+    public static Config config;
+    public static MiniMessage miniMessage = MiniMessage.miniMessage();
+    public static final Gson gson = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
+    public static long lastSpawnTime = 0;
 
     @Override
     public void onInitialize() {
+        CommandRegistrationCallback.EVENT.register( (commandDispatcher, commandBuildContext, commandSelection) ->
+                        SchedulerCommands.register(commandDispatcher)
+                );
+
         loadConfig();
-
-        CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(Priority.HIGHEST, pokemonEntitySpawnEvent -> {
-            var pokemonEntity = pokemonEntitySpawnEvent.getEntity();
-            var pokemon = pokemonEntity.getPokemon();
-
-            if (isSpecial(pokemon)) {
-                return Unit.INSTANCE;  // If it's special, don't spawn holiday Pokémon
-            }
-
-
-
-            String today = getTodayDate();
-            Config config = CobbleScheduler.config;
-            for (DateUtils holiday : config.getHolidays()) {
-                if (holiday.getDate().equals(today)) {
-                    Random random = new Random();
-                    // Check for each Pokémon associated with the holiday
-                    for (PokemonData pokemonData : holiday.getPokemonEntityList()) {
-                        // Compare random number with spawn rate
-                        if (System.currentTimeMillis() - lastSpawnTime > SPAWN_COOLDOWN) {
-                            if (random.nextInt(100) < (pokemonData.getSpawn_rate() * 100)) {
-                                // Spawn the holiday Pokémon
-                                spawnHolidayPokemon(pokemonData, pokemonEntity);
-                                pokemonEntitySpawnEvent.cancel(); // Cancel the normal Pokémon spawn
-                                return Unit.INSTANCE;
-                            }
-                        }
-                    }
-                }
-            }
-
-
-            return Unit.INSTANCE;
+        ServerLifecycleEvents.SERVER_STARTING.register(minecraftServer -> {
+            logger.info(
+                    "Starting up %n by %authors %v".replace("%n", NAME).replace("%authors", AUTHORS).replace("%v",
+                            VERSION
+                    ));
         });
 
-    }
 
-    private String getTodayDate() {
-        return java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("MM-dd"));
-    }
-
-    public boolean isSpecial(Pokemon pokemon) {
-        for (DateUtils holiday : CobbleScheduler.config.getHolidays()) {
-            for (PokemonData specialPokemon : holiday.getPokemonEntityList()) {
-                if (specialPokemon.getName().equalsIgnoreCase(pokemon.getDisplayName().toString())) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-
-    private void spawnHolidayPokemon(PokemonData pokemonData, PokemonEntity pokemonEntity) {
-        Entity closestPlayer = pokemonEntity.getServer().overworld().getRandomPlayer();
-        if (closestPlayer == null) {
-            System.out.println("No players found nearby.");
-            return;
-        }
-
-        BlockPos playerPos = closestPlayer.getOnPos();
-        BlockPos spawnPos = getRandomNearbyPosition(playerPos);
-
-        // Create the Pokémon using the specified data
-        Species species = PokemonSpecies.INSTANCE.getByName(pokemonData.getName().toLowerCase());
-        if (species == null) {
-            System.out.println("Could not find Pokémon species: " + pokemonData.getName());
-            return;
-        }
-
-        PokemonEntity holidayPokemon = new PokemonEntity(pokemonEntity.getServer().overworld(), species.create(pokemonData.getLevel()), CobblemonEntities.POKEMON);
-        holidayPokemon.setPos(spawnPos.getX(), spawnPos.getY(), spawnPos.getZ());
-
-
-        pokemonEntity.getServer().overworld().addFreshEntity(holidayPokemon);
-        System.out.println("Spawned holiday Pokémon: " + pokemonData.getName());
-    }
-
-    private BlockPos getRandomNearbyPosition(BlockPos playerPos) {
-        Random random = new Random();
-        int offsetX = random.nextInt(10) - 5;
-        int offsetZ = random.nextInt(10) - 5;
-
-        return playerPos.offset(offsetX, 0, offsetZ);
+        HolidaySpawnEvent.SpawnInit();
     }
 
 
@@ -144,11 +66,11 @@ public class CobbleScheduler implements ModInitializer {
                 }
             } catch (JsonSyntaxException e) {
                 logger.warn("Error reading config file. Using default config.");
-                e.printStackTrace();
+                
                 config = Config.Configs();  // Fallback to default config
             } catch (IOException e) {
                 logger.warn("Error reading config file.");
-                e.printStackTrace();
+                
                 config = Config.Configs(); // Fallback to default config
             }
         } else {
@@ -166,7 +88,7 @@ public class CobbleScheduler implements ModInitializer {
             logger.info(NAME + ": Config saved successfully.");
         } catch (IOException e) {
             logger.warn("Failed to save the config!");
-            e.printStackTrace();
+            
         }
     }
 

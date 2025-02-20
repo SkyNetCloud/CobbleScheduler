@@ -11,20 +11,18 @@ import com.cobblemon.mod.common.api.pokemon.PokemonProperties;
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import kotlin.Unit;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 import net.minecraft.core.BlockPos;
 
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.biome.Biome;
 
 import java.util.Objects;
 import java.util.Random;
+import java.util.Set;
 
 import static ca.skynetcloud.cobblescheduler.CobbleScheduler.*;
 import static ca.skynetcloud.cobblescheduler.utils.DateUtils.getTodayDate;
-import static net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.parsed;
-import static net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.unparsed;
 
 public class HolidaySpawnEvent {
 
@@ -39,21 +37,18 @@ public class HolidaySpawnEvent {
                 return Unit.INSTANCE; // If it's special, don't spawn holiday Pokémon
             }
 
-            String today = getTodayDate();
             Config config = CobbleScheduler.config;
             for (DateUtils holiday : config.getHolidays()) {
-                if (holiday.getDate().equals(today)) {
+                if (DateUtils.isDateMatch(holiday.getHoliday(), holiday.getStartDate(), holiday.getEndDate())) { // Updated check
                     Random random = new Random();
                     for (PokemonData pokemonData : holiday.getPokemonEntityList()) {
                         if (System.currentTimeMillis() - lastSpawnTime > config.getCooldown()) {
                             if (random.nextInt(100) < (pokemonData.getSpawn_rate() * 50)) {
                                 spawnHolidayPokemon(pokemonData, pokemonEntity);
-                                lastSpawnTime = System.currentTimeMillis(); // Update the last spawn time
-
-                                // Check if messages are enabled and the cooldown has passed
+                                lastSpawnTime = System.currentTimeMillis();
                                 if (config.isSendMessagesEnabled() && System.currentTimeMillis() - lastMessageTime > config.getMessageCooldown()) {
-                                    for (ServerPlayer player : pokemonEntity.getServer().getPlayerList().getPlayers()) {
-                                       MessageUtils.sendMessage(player, config);
+                                    for (ServerPlayer player : Objects.requireNonNull(pokemonEntity.getServer()).getPlayerList().getPlayers()) {
+                                        MessageUtils.sendMessage(player, config);
                                     }
                                     lastMessageTime = System.currentTimeMillis(); // Update last message time
                                 }
@@ -88,22 +83,42 @@ public class HolidaySpawnEvent {
             return;
         }
 
+        Level world = pokemonEntity.getServer().overworld();
         BlockPos playerPos = closestPlayer.getOnPos();
-        BlockPos spawnPos = getRandomNearbyPosition(playerPos);
 
-        // Parse the Pokémon data from the name string (handles species + form)
+        Set<String> allowedBiomes = pokemonData.getAllowedBiomes();
+
+        int attempts = 10;
+        BlockPos spawnPos = null;
+
+        for (int i = 0; i < attempts; i++) {
+            BlockPos potentialPos = getRandomNearbyPosition(playerPos);
+            Biome biome = world.getBiome(potentialPos).value();
+
+            // If no biomes are specified, allow spawning anywhere
+            if (allowedBiomes == null || allowedBiomes.isEmpty() || allowedBiomes.contains(biome.toString())) {
+                spawnPos = potentialPos;
+                break;
+            }
+        }
+
+        if (spawnPos == null) {
+            System.out.println("No valid biome found for spawning " + pokemonData.getName());
+            return;
+        }
+
         PokemonProperties argPro = PokemonProperties.Companion.parse(pokemonData.getName());
 
         BlockPos pos = spawnPos;
-        while (pos.getY() > 0 && pokemonEntity.getServer().overworld().isEmptyBlock(pos)) {
+        while (pos.getY() > 0 && world.isEmptyBlock(pos)) {
             pos = pos.below(); // Move down until a solid block is found
         }
 
-        PokemonEntity pokemon = argPro.createEntity(pokemonEntity.getServer().overworld());
+        PokemonEntity pokemon = argPro.createEntity(world);
+        pokemon.getPokemon().setLevel(pokemonData.getLevel());
         pokemon.setPos(spawnPos.getX(), pos.getY(), spawnPos.getZ());
 
-        // Spawn the Pokémon
-        pokemonEntity.getServer().overworld().addFreshEntity(pokemon);
+        world.addFreshEntity(pokemon);
         System.out.println("Spawned holiday Pokémon: " + pokemon.getName().getString() + " with form: " + pokemon.getForm().getName());
     }
 
