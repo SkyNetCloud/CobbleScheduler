@@ -140,16 +140,16 @@ tasks.register('publishCurseForge', TaskPublishCurseForge) {
 
     apiToken = System.getenv("CURSEFORGE_TOKEN")
 
-    def mainFile = upload('827760', file("build/libs/${project.archives_base_name} ${project.minecraft_version}-${project.mod_version}.jar"))
+    def mainFile = upload('1203899', file("build/libs/${project.archives_base_name} ${project.minecraft_version}-${project.mod_version}.jar"))
     mainFile.displayName = "${project.archives_base_name}-${project.minecraft_version}-${mod_version}"
-    mainFile.releaseType = 'release'
+    mainFile.releaseType = 'beta'
     mainFile.changelog = changelogText
     mainFile.changelogType = "markdown"
 
     mainFile.addRequirement("fabric-api")
-    mainFile.addRequirement("fabric-language-kotlin")
+    //mainFile.addRequirement("fabric-language-kotlin")
     mainFile.addRequirement("cobblemon")
-    mainFile.addEnvironment("Server","Client")
+    mainFile.addEnvironment("Server")
     mainFile.addGameVersion("1.21.1")
     mainFile.addJavaVersion("Java 21")
     debugMode = site_debugMode
@@ -158,9 +158,9 @@ tasks.register('publishCurseForge', TaskPublishCurseForge) {
 // Modrinth publishing configuration
 modrinth {
     token = System.getenv("MODRINTH_TOKEN")
-    projectId = "cobblecast"
+    projectId = "cobblescheduler"
     versionNumber = "${project.archives_base_name}-${project.minecraft_version}-${mod_version}"
-    versionType = "release"
+    versionType = "beta"
     uploadFile = file("build/libs/${project.archives_base_name} ${project.minecraft_version}-${project.mod_version}.jar")
     gameVersions = ["${project.minecraft_version}"] as Iterable<? extends String>
     loaders = ["fabric"]
@@ -169,7 +169,7 @@ modrinth {
 
     dependencies {
         required.project "fabric-api"
-        required.project "fabric-language-kotlin"
+        //required.project "fabric-language-kotlin"
         required.project "cobblemon"
     }
 }
