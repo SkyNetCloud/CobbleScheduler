@@ -147,7 +147,7 @@ tasks.register('publishCurseForge', TaskPublishCurseForge) {
     mainFile.changelogType = "markdown"
 
     mainFile.addRequirement("fabric-api")
-    //mainFile.addRequirement("fabric-language-kotlin")
+
     mainFile.addRequirement("cobblemon")
     mainFile.addEnvironment("Server")
     mainFile.addGameVersion("1.21.1")
@@ -169,7 +169,6 @@ modrinth {
 
     dependencies {
         required.project "fabric-api"
-        //required.project "fabric-language-kotlin"
         required.project "cobblemon"
     }
 }
