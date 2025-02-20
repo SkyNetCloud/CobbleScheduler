@@ -10,9 +10,6 @@
   "icon": "assets/cobblescheduler/icon.png",
   "environment": "*",
   "entrypoints": {
-    "client": [
-      "ca.skynetcloud.cobblescheduler.client.CobbleSchedulerClient"
-    ],
     "main": [
       "ca.skynetcloud.cobblescheduler.CobbleScheduler"
     ]

@@ -1,6 +1,11 @@
+import net.darkhax.curseforgegradle.TaskPublishCurseForge
+
 plugins {
     id 'fabric-loom' version '1.10-SNAPSHOT'
     id 'maven-publish'
+    id 'org.jetbrains.kotlin.jvm'
+    id "com.modrinth.minotaur" version "2.+"
+    id 'net.darkhax.curseforgegradle' version '1.1.+'
 }
 
 version = project.mod_version
@@ -12,11 +17,24 @@ base {
 
 
 repositories {
-    // Add repositories to retrieve artifacts from in here.
-    // You should only use this when depending on other mods because
-    // Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
-    // See https://docs.gradle.org/current/userguide/declaring_repositories.html
-    // for more information about repositories.
+    mavenCentral()
+    maven {
+        url "https://maven.nucleoid.xyz/"
+        name "Nucleoid"
+    }
+
+    maven {url = "https://maven.architectury.dev/" }
+
+    maven { url = 'https://jitpack.io' }
+    maven {
+        url ="https://maven.impactdev.net/repository/development/"
+    }
+    maven { url = uri("https://oss.sonatype.org/content/repositories/releases") }
+    maven { url = uri("https://oss.sonatype.org/content/repositories/snapshots") }
+    maven{
+        url = "https://cursemaven.com"
+    }
+    maven {url = "https://maven.architectury.dev/" }
 }
 
 dependencies {
@@ -26,6 +44,27 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // Adventure Platform and Discord Webhook
+    modImplementation include("net.kyori:adventure-platform-fabric:5.14.1")
+
+    modImplementation("net.fabricmc:fabric-language-kotlin:1.13.0+kotlin.2.1.0")
+
+
+    // Adventure Text
+    implementation "net.kyori:adventure-text-minimessage:4.17.0"
+    implementation "net.kyori:adventure-text-serializer-gson:4.17.0"
+    implementation "net.kyori:adventure-api:4.17.0"
+
+
+    modImplementation 'me.lucko:fabric-permissions-api:0.3.1'
+    // Placeholder API
+    modImplementation include("eu.pb4:placeholder-api:${project.placeholder_api_version}")
+
+    // Cobblemon
+    modImplementation "com.cobblemon:fabric:1.6.1+1.21.1"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+
 }
 
 processResources {
@@ -70,20 +109,73 @@ jar {
     }
 }
 
-// configure the maven publication
-publishing {
-    publications {
-        create("mavenJava", MavenPublication) {
-            artifactId = project.archives_base_name
-            from components.java
+tasks.register("updateJavaVersion") {
+    doLast {
+        def javaFile = file("D:\\Mods\\Cobble Scheduler\\src\\main\\java\\ca\\skynetcloud\\cobblescheduler\\CobbleScheduler.java") // Replace with actual file path
+
+        if (javaFile.exists()) {
+            println "Updating VERSION in ${javaFile.name}"
+
+            // Read the file and replace the placeholder
+            def content = javaFile.text
+            def updatedContent = content.replaceAll(
+                    /private static final String VERSION = ".*";/,
+                    "private static final String VERSION = \"${mod_version}\";"
+            )
+
+            // Write the updated content back to the file
+            javaFile.text = updatedContent
+        } else {
+            println "Java file not found: ${javaFile.path}"
         }
     }
+}
 
-    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-    repositories {
-        // Add repositories to publish to here.
-        // Notice: This block does NOT have the same function as the block in the top level.
-        // The repositories here will be used for publishing your artifact, not for
-        // retrieving dependencies.
+def changelogText = project.file('changelog.md').text
+def site_debugMode = false
+
+// CurseForge publishing task
+tasks.register('publishCurseForge', TaskPublishCurseForge) {
+    group = "publishing"
+
+    apiToken = System.getenv("CURSEFORGE_TOKEN")
+
+    def mainFile = upload('827760', file("build/libs/${project.archives_base_name} ${project.minecraft_version}-${project.mod_version}.jar"))
+    mainFile.displayName = "${project.archives_base_name}-${project.minecraft_version}-${mod_version}"
+    mainFile.releaseType = 'release'
+    mainFile.changelog = changelogText
+    mainFile.changelogType = "markdown"
+
+    mainFile.addRequirement("fabric-api")
+    mainFile.addRequirement("fabric-language-kotlin")
+    mainFile.addRequirement("cobblemon")
+    mainFile.addEnvironment("Server","Client")
+    mainFile.addGameVersion("1.21.1")
+    mainFile.addJavaVersion("Java 21")
+    debugMode = site_debugMode
+}
+
+// Modrinth publishing configuration
+modrinth {
+    token = System.getenv("MODRINTH_TOKEN")
+    projectId = "cobblecast"
+    versionNumber = "${project.archives_base_name}-${project.minecraft_version}-${mod_version}"
+    versionType = "release"
+    uploadFile = file("build/libs/${project.archives_base_name} ${project.minecraft_version}-${project.mod_version}.jar")
+    gameVersions = ["${project.minecraft_version}"] as Iterable<? extends String>
+    loaders = ["fabric"]
+    changelog = changelogText
+    debugMode = site_debugMode
+
+    dependencies {
+        required.project "fabric-api"
+        required.project "fabric-language-kotlin"
+        required.project "cobblemon"
     }
+}
+
+
+
+kotlin {
+    jvmToolchain(21)
 }
