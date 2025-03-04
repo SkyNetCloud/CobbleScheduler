@@ -62,23 +62,23 @@ public class CobbleScheduler implements ModInitializer {
 
                 if (config == null) {
                     logger.warn("Loaded config is null. Resetting to default config.");
-                    config = Config.Configs(); // Fallback to default
+                    config = Config.Configs();
                 }
             } catch (JsonSyntaxException e) {
                 logger.warn("Error reading config file. Using default config.");
                 
-                config = Config.Configs();  // Fallback to default config
+                config = Config.Configs();
             } catch (IOException e) {
                 logger.warn("Error reading config file.");
                 
-                config = Config.Configs(); // Fallback to default config
+                config = Config.Configs();
             }
         } else {
             logger.info(NAME + ": Config file not found. Creating a new one with default settings.");
-            config = Config.Configs(); // Create a new default config
+            config = Config.Configs();
         }
 
-        saveConfig(); // Save the loaded or default config
+        saveConfig();
     }
 
     public static void saveConfig() {

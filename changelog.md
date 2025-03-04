@@ -1,11 +1,7 @@
-# Version 0.0.1
+# Version 0.0.2
 
-## [0.0.1] - Initial Beta Release
+## [0.0.2] - Beta Release
 
-### ✨ Features
+### ✨ Fixed
 
-- 🗓️ Adds a configurable scheduling system for spawning Pokémon during holidays or week long events.
-- 📜 Supports defining Pokémon spawns via a JSON config file.
-- 🌎 Allows adjusting spawn conditions (biome).
-- 📜 Support Mini Message System for custom spawn message that happen every 2 hours 
-
+- 🗓️ Added a start and end check for isDateInRange so it doesn't crash when the date is null.

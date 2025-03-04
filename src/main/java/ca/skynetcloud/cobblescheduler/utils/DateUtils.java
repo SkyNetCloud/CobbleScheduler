@@ -61,7 +61,14 @@ public class DateUtils {
 
     public static boolean isDateInRange(String startDate, String endDate) {
         String todayDate = getTodayDate();
-        return (todayDate.compareTo(startDate) >= 0) && (todayDate.compareTo(endDate) <= 0);    }
+
+        if (startDate == null || endDate == null) {
+            System.err.println("Error: Start date or end date is null!");
+            return false;
+        }
+
+        return (todayDate.compareTo(startDate) >= 0) && (todayDate.compareTo(endDate) <= 0);
+    }
 
     public static boolean isDateMatch(String holidayDate, String holidayStartDate, String holidayEndDate) {
         String todayDate = getTodayDate();

@@ -1,17 +1,12 @@
 package ca.skynetcloud.cobblescheduler.utils;
 
-import com.cobblemon.mod.common.api.pokemon.PokemonSpecies;
-import com.cobblemon.mod.common.pokemon.Species;
-
-import java.util.List;
 import java.util.Set;
 
 public class PokemonData {
     private String name;
     private int level;
     private double spawn_rate;
-    private Set<String> allowedBiomes; // Missing field added
-
+    private Set<String> allowedBiomes;
     public String getName() {
         return name;
     }

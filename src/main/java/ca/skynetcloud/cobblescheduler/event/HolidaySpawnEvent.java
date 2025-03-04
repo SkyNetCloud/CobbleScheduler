@@ -12,7 +12,6 @@ import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import kotlin.Unit;
 import net.minecraft.core.BlockPos;
-
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
@@ -21,8 +20,8 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 
-import static ca.skynetcloud.cobblescheduler.CobbleScheduler.*;
-import static ca.skynetcloud.cobblescheduler.utils.DateUtils.getTodayDate;
+import static ca.skynetcloud.cobblescheduler.CobbleScheduler.config;
+import static ca.skynetcloud.cobblescheduler.CobbleScheduler.lastSpawnTime;
 
 public class HolidaySpawnEvent {
 
