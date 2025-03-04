@@ -1,5 +1,7 @@
 package ca.skynetcloud.cobblescheduler.utils;
 
+import ca.skynetcloud.cobblescheduler.CobbleScheduler;
+
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -63,7 +65,7 @@ public class DateUtils {
         String todayDate = getTodayDate();
 
         if (startDate == null || endDate == null) {
-            System.err.println("Error: Start date or end date is null!");
+            CobbleScheduler.logger.error("Error: Start date or end date is null!");
             return false;
         }
 
