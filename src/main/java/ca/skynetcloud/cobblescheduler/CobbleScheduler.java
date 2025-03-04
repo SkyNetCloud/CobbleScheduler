@@ -26,7 +26,7 @@ public class CobbleScheduler implements ModInitializer {
 
     private static final String NAME = "CobbleScheduler";
     private static final String AUTHORS = "SkyNetCloud";
-    private static final String VERSION = "0.0.1";
+    private static final String VERSION = "0.0.2";
     private static final File CONFIG_FILE = new File("config/CobbleHolidays/holidays.json");
     public static Config config;
     public static MiniMessage miniMessage = MiniMessage.miniMessage();

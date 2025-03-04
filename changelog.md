@@ -4,4 +4,4 @@
 
 ### ✨ Fixed
 
-- 🗓️ Added a start and end check for isDateInRange so it doesn't crash when the date is null.
+- Added a start and end check for isDateInRange so it doesn't crash when the date is null.
