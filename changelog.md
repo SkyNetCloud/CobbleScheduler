@@ -1,7 +1,8 @@
-# Version 0.0.2
+# Version 0.0.3
 
-## [0.0.2] - Beta Release
+## [0.0.3] - Beta Release
 
-### ✨ Fixed
+### ✨ Added
 
-- Added a start and end check for isDateInRange so it doesn't crash when the date is null.
+- Added a DebugMode command for debugging purposes. [Don't Enable It]
+- Added a new command called "toggledebug" to enable DebugMode.
