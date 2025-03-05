@@ -1,6 +1,7 @@
 package ca.skynetcloud.cobblescheduler;
 
 
+import ca.skynetcloud.cobblescheduler.commands.DebugMode;
 import ca.skynetcloud.cobblescheduler.commands.SchedulerCommands;
 import ca.skynetcloud.cobblescheduler.config.Config;
 import ca.skynetcloud.cobblescheduler.event.HolidaySpawnEvent;
@@ -35,9 +36,10 @@ public class CobbleScheduler implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        CommandRegistrationCallback.EVENT.register( (commandDispatcher, commandBuildContext, commandSelection) ->
-                        SchedulerCommands.register(commandDispatcher)
-                );
+        CommandRegistrationCallback.EVENT.register( (commandDispatcher, commandBuildContext, commandSelection) -> {
+                    SchedulerCommands.register(commandDispatcher);
+                    DebugMode.register(commandDispatcher);
+                });
 
         loadConfig();
         ServerLifecycleEvents.SERVER_STARTING.register(minecraftServer -> {

@@ -13,6 +13,7 @@ public class DateUtils {
     private String endDate;
     private List<PokemonData> pokemonEntityList;
     private String holidayMessage;
+    private static Boolean Debug = false;
 
     public String getHoliday() {
         return holiday;
@@ -64,8 +65,10 @@ public class DateUtils {
     public static boolean isDateInRange(String startDate, String endDate) {
         String todayDate = getTodayDate();
 
-        if (startDate == null || endDate == null) {
-            CobbleScheduler.logger.error("Error: Start date or end date is null!");
+        if (endDate == null) {
+            if (Debug) {
+                CobbleScheduler.logger.info("Info: End date is null!");
+            }
             return false;
         }
 
@@ -75,6 +78,10 @@ public class DateUtils {
     public static boolean isDateMatch(String holidayDate, String holidayStartDate, String holidayEndDate) {
         String todayDate = getTodayDate();
 
-        return todayDate.equals(holidayDate) || isDateInRange(holidayStartDate, holidayEndDate);
+        if (holidayDate != null && !holidayDate.isEmpty()) {
+            return todayDate.equals(holidayDate);
+        }
+
+        return isDateInRange(holidayStartDate, holidayEndDate);
     }
 }
