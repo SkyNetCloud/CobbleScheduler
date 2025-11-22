@@ -30,7 +30,7 @@ public class HolidaySpawnEvent {
     private static final Random random = new Random();
     private static List<DateUtils> activeHolidays = null;
     private static long lastHolidayCheck = 0;
-    private static final long HOLIDAY_CHECK_INTERVAL = 60000; // Check every minute
+    private static final long HOLIDAY_CHECK_INTERVAL = 60000;
 
     public static void SpawnInit() {
         CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(Priority.HIGHEST, pokemonEntitySpawnEvent -> {
