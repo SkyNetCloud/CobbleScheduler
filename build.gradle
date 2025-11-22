@@ -130,8 +130,8 @@ tasks.register('publishCurseForge', TaskPublishCurseForge) {
 
     apiToken = System.getenv("CURSEFORGE_TOKEN")
 
-    def mainFile = upload('1203899', file("build/libs/${project.archives_base_name} ${project.minecraft_version}-${project.mod_version}.jar"))
-    mainFile.displayName = "${project.archives_base_name}-${project.minecraft_version}-${mod_version}"
+    def mainFile = upload('1203899', file("build/libs/${archives_base_name} ${minecraft_version}-${mod_version}.jar"))
+    mainFile.displayName = "${archives_base_name}-${minecraft_version}-${mod_version}"
     mainFile.releaseType = 'beta'
     mainFile.changelog = changelogText
     mainFile.changelogType = "markdown"
@@ -149,10 +149,10 @@ tasks.register('publishCurseForge', TaskPublishCurseForge) {
 modrinth {
     token = System.getenv("MODRINTH_TOKEN")
     projectId = "cobblescheduler"
-    versionNumber = "${project.archives_base_name}-${project.minecraft_version}-${mod_version}"
+    versionNumber = "${archives_base_name}-${minecraft_version}-${mod_version}"
     versionType = "beta"
-    uploadFile = file("build/libs/${project.archives_base_name} ${project.minecraft_version}-${project.mod_version}.jar")
-    gameVersions = ["${project.minecraft_version}"] as Iterable<? extends String>
+    uploadFile = file("build/libs/${archives_base_name} ${minecraft_version}-${mod_version}.jar")
+    gameVersions = ["${minecraft_version}"] as Iterable<? extends String>
     loaders = ["fabric"]
     changelog = changelogText
     debugMode = site_debugMode

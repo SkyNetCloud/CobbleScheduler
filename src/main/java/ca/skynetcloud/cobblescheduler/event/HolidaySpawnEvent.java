@@ -1,7 +1,6 @@
 package ca.skynetcloud.cobblescheduler.event;
 
 import ca.skynetcloud.cobblescheduler.CobbleScheduler;
-import ca.skynetcloud.cobblescheduler.config.Config;
 import ca.skynetcloud.cobblescheduler.utils.DateUtils;
 import ca.skynetcloud.cobblescheduler.utils.MessageUtils;
 import ca.skynetcloud.cobblescheduler.utils.PokemonData;
@@ -17,6 +16,7 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
@@ -28,41 +28,46 @@ public class HolidaySpawnEvent {
 
     private static long lastMessageTime = 0;
     private static final Random random = new Random();
+    private static List<DateUtils> activeHolidays = null;
+    private static long lastHolidayCheck = 0;
+    private static final long HOLIDAY_CHECK_INTERVAL = 60000; // Check every minute
 
     public static void SpawnInit() {
         CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(Priority.HIGHEST, pokemonEntitySpawnEvent -> {
             var pokemonEntity = pokemonEntitySpawnEvent.getEntity();
             var pokemon = pokemonEntity.getPokemon();
 
-            // Check if this is already a holiday Pokémon FIRST
             if (isSpecial(pokemon)) {
                 return Unit.INSTANCE;
             }
 
-            // Check cooldown at the start to avoid unnecessary processing
             if (System.currentTimeMillis() - lastSpawnTime < config.getCooldown()) {
                 return Unit.INSTANCE;
             }
 
-            Config config = CobbleScheduler.config;
-            //String today = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("MM-dd"));
+            List<DateUtils> holidays = getActiveHolidays();
+            if (holidays.isEmpty()) {
+                return Unit.INSTANCE;
+            }
 
-            for (DateUtils holiday : config.getHolidays()) {
-                if (DateUtils.isDateMatch(holiday.getHoliday(), holiday.getStartDate(), holiday.getEndDate())) {
-                    for (PokemonData pokemonData : holiday.getPokemonEntityList()) {
-                        if (random.nextInt(100) < (pokemonData.getSpawn_rate() * 50)) {
-                            if (spawnHolidayPokemon(pokemonData, pokemonEntity)) {
-                                // CRITICAL: Cancel the original spawn
-                                pokemonEntitySpawnEvent.cancel();
-                                lastSpawnTime = System.currentTimeMillis();
+            if (random.nextDouble() > 0.01) {
+                return Unit.INSTANCE;
+            }
 
-                                // Send message if enabled
-                                if (config.isSendMessagesEnabled() && System.currentTimeMillis() - lastMessageTime > config.getMessageCooldown()) {
-                                    for (ServerPlayerEntity player : Objects.requireNonNull(pokemonEntity.getServer()).getPlayerManager().getPlayerList()) {
-                                        MessageUtils.sendMessage(player, config);
-                                    }
-                                    lastMessageTime = System.currentTimeMillis();
+
+            for (DateUtils holiday : holidays) {
+                for (PokemonData pokemonData : holiday.getPokemonEntityList()) {
+                    double spawnChance = pokemonData.getSpawn_rate() / 100.0;
+                    if (random.nextDouble() < spawnChance) {
+                        if (spawnHolidayPokemon(pokemonData, pokemonEntity)) {
+                            pokemonEntitySpawnEvent.cancel();
+                            lastSpawnTime = System.currentTimeMillis();
+
+                            if (config.isSendMessagesEnabled() && System.currentTimeMillis() - lastMessageTime > config.getMessageCooldown()) {
+                                for (ServerPlayerEntity player : Objects.requireNonNull(pokemonEntity.getServer()).getPlayerManager().getPlayerList()) {
+                                    MessageUtils.sendMessage(player, config);
                                 }
+                                lastMessageTime = System.currentTimeMillis();
                             }
                             return Unit.INSTANCE;
                         }
@@ -73,9 +78,22 @@ public class HolidaySpawnEvent {
         });
     }
 
+    private static List<DateUtils> getActiveHolidays() {
+        long currentTime = System.currentTimeMillis();
+        if (activeHolidays == null || currentTime - lastHolidayCheck > HOLIDAY_CHECK_INTERVAL) {
+            activeHolidays = config.getHolidays().stream()
+                    .filter(holiday -> DateUtils.isDateMatch(holiday.getHoliday(), holiday.getStartDate(), holiday.getEndDate()))
+                    .collect(java.util.stream.Collectors.toList());
+            lastHolidayCheck = currentTime;
+        }
+        return activeHolidays;
+    }
+
     public static boolean isSpecial(Pokemon pokemon) {
         String speciesName = pokemon.getSpecies().getName();
-        for (DateUtils holiday : config.getHolidays()) {
+        List<DateUtils> holidays = getActiveHolidays();
+
+        for (DateUtils holiday : holidays) {
             for (PokemonData specialPokemon : holiday.getPokemonEntityList()) {
                 if (specialPokemon.getName().equalsIgnoreCase(speciesName)) {
                     return true;
@@ -88,7 +106,6 @@ public class HolidaySpawnEvent {
     private static boolean spawnHolidayPokemon(PokemonData pokemonData, PokemonEntity pokemonEntity) {
         ServerPlayerEntity closestPlayer = Objects.requireNonNull(pokemonEntity.getServer()).getOverworld().getRandomAlivePlayer();
         if (closestPlayer == null) {
-            // LOGGER.debug("No players found nearby for holiday spawn.");
             return false;
         }
 
@@ -99,7 +116,6 @@ public class HolidaySpawnEvent {
         BlockPos spawnPos = findValidSpawnPosition(playerPos, world, allowedBiomes);
 
         if (spawnPos == null) {
-            // LOGGER.debug("No valid spawn position found for {}", pokemonData.getName());
             return false;
         }
 
@@ -111,24 +127,20 @@ public class HolidaySpawnEvent {
             holidayPokemon.setPos(spawnPos.getX(), spawnPos.getY() + 1, spawnPos.getZ());
 
             world.spawnEntity(holidayPokemon);
-            // LOGGER.info("Spawned holiday Pokémon: {} at {}, {}, {}", pokemonData.getName(), spawnPos.getX(), spawnPos.getY(), spawnPos.getZ());
-
             return true;
 
         } catch (Exception e) {
-            // LOGGER.error("Error spawning holiday Pokémon: {}", pokemonData.getName(), e);
+            CobbleScheduler.LOGGER.error("Error spawning holiday Pokémon: {}", pokemonData.getName(), e);
             return false;
         }
     }
 
     private static BlockPos findValidSpawnPosition(BlockPos playerPos, World world, Set<String> allowedBiomes) {
-        // If no biomes specified, use simple random position
         if (allowedBiomes == null || allowedBiomes.isEmpty()) {
             return getRandomNearbyPosition(playerPos);
         }
 
-        // Check a few positions for valid biomes
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 10; i++) {
             BlockPos potentialPos = getRandomNearbyPosition(playerPos);
             Biome biome = world.getBiome(potentialPos).value();
 
@@ -141,9 +153,8 @@ public class HolidaySpawnEvent {
     }
 
     private static BlockPos getRandomNearbyPosition(BlockPos playerPos) {
-        Random random = new Random();
-        int distance = random.nextInt(11); // 0 to 10 blocks
-        Direction direction = Direction.fromHorizontal(random.nextInt(4)); // N, E, S, W
+        int distance = random.nextInt(16) + 8; // 8 to 24 blocks away
+        Direction direction = Direction.fromHorizontal(random.nextInt(4));
 
         return playerPos.offset(direction, distance);
     }
