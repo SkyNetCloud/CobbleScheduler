@@ -3,12 +3,23 @@ package ca.skynetcloud.cobblescheduler.utils;
 import java.util.Set;
 
 public class PokemonData {
+
     private String name;
     private int level;
-    private double spawn_rate;
+    private double spawnRate;
     private Set<String> allowedBiomes;
+
+
     public String getName() {
         return name;
+    }
+
+    public int getLevel() {
+        return level;
+    }
+
+    public double getSpawnRate() {
+        return spawnRate;
     }
 
     public Set<String> getAllowedBiomes() {
@@ -19,23 +30,23 @@ public class PokemonData {
         this.name = name;
     }
 
-    public int getLevel() {
-        return level;
-    }
-
     public void setLevel(int level) {
         this.level = level;
     }
 
-    public double getSpawn_rate() {
-        return spawn_rate;
-    }
-
-    public void setSpawn_rate(double spawn_rate) {
-        this.spawn_rate = spawn_rate;
+    public void setSpawnRate(double spawnRate) {
+        this.spawnRate = spawnRate;
     }
 
     public void setAllowedBiomes(Set<String> allowedBiomes) {
         this.allowedBiomes = allowedBiomes;
+    }
+
+    public double getSpawn_rate() {
+        return spawnRate;
+    }
+
+    public void setSpawn_rate(double spawn_rate) {
+        this.spawnRate = spawn_rate;
     }
 }

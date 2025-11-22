@@ -11,10 +11,11 @@ import com.cobblemon.mod.common.api.pokemon.PokemonProperties;
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import kotlin.Unit;
-import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.biome.Biome;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.world.World;
+import net.minecraft.world.biome.Biome;
 
 import java.util.Objects;
 import java.util.Random;
@@ -26,36 +27,44 @@ import static ca.skynetcloud.cobblescheduler.CobbleScheduler.lastSpawnTime;
 public class HolidaySpawnEvent {
 
     private static long lastMessageTime = 0;
+    private static final Random random = new Random();
 
     public static void SpawnInit() {
         CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(Priority.HIGHEST, pokemonEntitySpawnEvent -> {
             var pokemonEntity = pokemonEntitySpawnEvent.getEntity();
             var pokemon = pokemonEntity.getPokemon();
 
+            // Check if this is already a holiday Pokémon FIRST
             if (isSpecial(pokemon)) {
-                return Unit.INSTANCE; // If it's special, don't spawn holiday Pokémon
+                return Unit.INSTANCE;
+            }
+
+            // Check cooldown at the start to avoid unnecessary processing
+            if (System.currentTimeMillis() - lastSpawnTime < config.getCooldown()) {
+                return Unit.INSTANCE;
             }
 
             Config config = CobbleScheduler.config;
+            //String today = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("MM-dd"));
+
             for (DateUtils holiday : config.getHolidays()) {
-                if (DateUtils.isDateMatch(holiday.getHoliday(), holiday.getStartDate(), holiday.getEndDate())) { // Updated check
-                    Random random = new Random();
+                if (DateUtils.isDateMatch(holiday.getHoliday(), holiday.getStartDate(), holiday.getEndDate())) {
                     for (PokemonData pokemonData : holiday.getPokemonEntityList()) {
-                        if (System.currentTimeMillis() - lastSpawnTime > config.getCooldown()) {
-                            if (random.nextInt(100) < (pokemonData.getSpawn_rate() * 50)) {
-                                spawnHolidayPokemon(pokemonData, pokemonEntity);
+                        if (random.nextInt(100) < (pokemonData.getSpawn_rate() * 50)) {
+                            if (spawnHolidayPokemon(pokemonData, pokemonEntity)) {
+                                // CRITICAL: Cancel the original spawn
+                                pokemonEntitySpawnEvent.cancel();
                                 lastSpawnTime = System.currentTimeMillis();
+
+                                // Send message if enabled
                                 if (config.isSendMessagesEnabled() && System.currentTimeMillis() - lastMessageTime > config.getMessageCooldown()) {
-                                    for (ServerPlayer player : Objects.requireNonNull(pokemonEntity.getServer()).getPlayerList().getPlayers()) {
+                                    for (ServerPlayerEntity player : Objects.requireNonNull(pokemonEntity.getServer()).getPlayerManager().getPlayerList()) {
                                         MessageUtils.sendMessage(player, config);
                                     }
-                                    lastMessageTime = System.currentTimeMillis(); // Update last message time
+                                    lastMessageTime = System.currentTimeMillis();
                                 }
-
-                                return Unit.INSTANCE;
                             }
-                        } else {
-                            System.out.println("Cooldown active, skipping spawn.");
+                            return Unit.INSTANCE;
                         }
                     }
                 }
@@ -65,9 +74,10 @@ public class HolidaySpawnEvent {
     }
 
     public static boolean isSpecial(Pokemon pokemon) {
+        String speciesName = pokemon.getSpecies().getName();
         for (DateUtils holiday : config.getHolidays()) {
             for (PokemonData specialPokemon : holiday.getPokemonEntityList()) {
-                if (specialPokemon.getName().equals(pokemon.getDisplayName().toString())) {
+                if (specialPokemon.getName().equalsIgnoreCase(speciesName)) {
                     return true;
                 }
             }
@@ -75,57 +85,66 @@ public class HolidaySpawnEvent {
         return false;
     }
 
-    private static void spawnHolidayPokemon(PokemonData pokemonData, PokemonEntity pokemonEntity) {
-        ServerPlayer closestPlayer = Objects.requireNonNull(pokemonEntity.getServer()).overworld().getRandomPlayer();
+    private static boolean spawnHolidayPokemon(PokemonData pokemonData, PokemonEntity pokemonEntity) {
+        ServerPlayerEntity closestPlayer = Objects.requireNonNull(pokemonEntity.getServer()).getOverworld().getRandomAlivePlayer();
         if (closestPlayer == null) {
-            System.out.println("No players found nearby.");
-            return;
+            // LOGGER.debug("No players found nearby for holiday spawn.");
+            return false;
         }
 
-        Level world = pokemonEntity.getServer().overworld();
-        BlockPos playerPos = closestPlayer.getOnPos();
+        World world = pokemonEntity.getServer().getOverworld();
+        BlockPos playerPos = closestPlayer.getBlockPos();
 
         Set<String> allowedBiomes = pokemonData.getAllowedBiomes();
+        BlockPos spawnPos = findValidSpawnPosition(playerPos, world, allowedBiomes);
 
-        int attempts = 10;
-        BlockPos spawnPos = null;
+        if (spawnPos == null) {
+            // LOGGER.debug("No valid spawn position found for {}", pokemonData.getName());
+            return false;
+        }
 
-        for (int i = 0; i < attempts; i++) {
+        try {
+            PokemonProperties properties = PokemonProperties.Companion.parse(pokemonData.getName());
+            PokemonEntity holidayPokemon = properties.createEntity(world);
+
+            holidayPokemon.getPokemon().setLevel(pokemonData.getLevel());
+            holidayPokemon.setPos(spawnPos.getX(), spawnPos.getY() + 1, spawnPos.getZ());
+
+            world.spawnEntity(holidayPokemon);
+            // LOGGER.info("Spawned holiday Pokémon: {} at {}, {}, {}", pokemonData.getName(), spawnPos.getX(), spawnPos.getY(), spawnPos.getZ());
+
+            return true;
+
+        } catch (Exception e) {
+            // LOGGER.error("Error spawning holiday Pokémon: {}", pokemonData.getName(), e);
+            return false;
+        }
+    }
+
+    private static BlockPos findValidSpawnPosition(BlockPos playerPos, World world, Set<String> allowedBiomes) {
+        // If no biomes specified, use simple random position
+        if (allowedBiomes == null || allowedBiomes.isEmpty()) {
+            return getRandomNearbyPosition(playerPos);
+        }
+
+        // Check a few positions for valid biomes
+        for (int i = 0; i < 5; i++) {
             BlockPos potentialPos = getRandomNearbyPosition(playerPos);
             Biome biome = world.getBiome(potentialPos).value();
 
-            // If no biomes are specified, allow spawning anywhere
-            if (allowedBiomes == null || allowedBiomes.isEmpty() || allowedBiomes.contains(biome.toString())) {
-                spawnPos = potentialPos;
-                break;
+            if (allowedBiomes.contains(biome.toString())) {
+                return potentialPos;
             }
         }
 
-        if (spawnPos == null) {
-            System.out.println("No valid biome found for spawning " + pokemonData.getName());
-            return;
-        }
-
-        PokemonProperties argPro = PokemonProperties.Companion.parse(pokemonData.getName());
-
-        BlockPos pos = spawnPos;
-        while (pos.getY() > 0 && world.isEmptyBlock(pos)) {
-            pos = pos.below(); // Move down until a solid block is found
-        }
-
-        PokemonEntity pokemon = argPro.createEntity(world);
-        pokemon.getPokemon().setLevel(pokemonData.getLevel());
-        pokemon.setPos(spawnPos.getX(), pos.getY(), spawnPos.getZ());
-
-        world.addFreshEntity(pokemon);
-        System.out.println("Spawned holiday Pokémon: " + pokemon.getName().getString() + " with form: " + pokemon.getForm().getName());
+        return null;
     }
 
     private static BlockPos getRandomNearbyPosition(BlockPos playerPos) {
         Random random = new Random();
-        int offsetX = random.nextInt(10) - 5;
-        int offsetZ = random.nextInt(10) - 5;
+        int distance = random.nextInt(11); // 0 to 10 blocks
+        Direction direction = Direction.fromHorizontal(random.nextInt(4)); // N, E, S, W
 
-        return playerPos.offset(offsetX, 0, offsetZ);
+        return playerPos.offset(direction, distance);
     }
 }

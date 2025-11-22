@@ -6,12 +6,14 @@ import ca.skynetcloud.cobblescheduler.utils.PokemonData;
 import java.util.*;
 
 public class Config {
+    private static final long DEFAULT_COOLDOWN = 7200000L; // 2 hours in milliseconds
 
     private List<DateUtils> holidays;
-    public long cooldown = 7200000;
+    private long cooldown = DEFAULT_COOLDOWN;
     private boolean sendMessagesEnabled = false;
-    private long messageCooldown = 7200000;
+    private long messageCooldown = DEFAULT_COOLDOWN;
 
+    // Getters and Setters
     public boolean isSendMessagesEnabled() {
         return sendMessagesEnabled;
     }
@@ -27,126 +29,132 @@ public class Config {
     public void setMessageCooldown(long messageCooldown) {
         this.messageCooldown = messageCooldown;
     }
+
     public void setCooldown(long cooldown) {
         this.cooldown = cooldown;
-    }
-
-    public List<DateUtils> getHolidays() {
-        return holidays != null ? holidays : new ArrayList<>();
     }
 
     public long getCooldown() {
         return cooldown;
     }
 
+    public List<DateUtils> getHolidays() {
+        return holidays != null ? holidays : new ArrayList<>();
+    }
+
     public void setHolidays(List<DateUtils> holidays) {
         this.holidays = holidays;
     }
 
-    public static Config Configs() {
+    // Factory method for default configuration
+    public static Config createDefault() {
         Config config = new Config();
 
         config.setSendMessagesEnabled(false);
-        config.setMessageCooldown(7200000);
-        config.setCooldown(7200000);
+        config.setMessageCooldown(DEFAULT_COOLDOWN);
+        config.setCooldown(DEFAULT_COOLDOWN);
+        config.setHolidays(createDefaultHolidays());
 
-        config.setHolidays(Arrays.asList(
+        return config;
+    }
+
+    private static List<DateUtils> createDefaultHolidays() {
+        return Arrays.asList(
                 createNewYearsDay(),
                 createMarchBreak(),
                 createIndependenceDay(),
                 createThanksgiving(),
                 createHalloween(),
                 createChristmas()
-        ));
-        return config;
+        );
     }
 
     private static DateUtils createNewYearsDay() {
-        DateUtils newYearsDay = new DateUtils();
-        newYearsDay.setHoliday("New Year's Day");
-        newYearsDay.setStartDate("01-01");
-        newYearsDay.setHolidayMessage("Happy New Year! Celebrate with a special Pichu!");
-
-        PokemonData pichu = createPokemon("pichu", 10, 0.6);
-        PokemonData clefairy = createPokemon("clefairy", 15, 0.4);
-
-        newYearsDay.setPokemonEntityList(Arrays.asList(pichu, clefairy));
-        return newYearsDay;
+        return createHoliday(
+                "New Year's Day",
+                "01-01",
+                null,
+                "Happy New Year! Celebrate with a special Pichu!",
+                createPokemon("pichu", 10, 0.6),
+                createPokemon("clefairy", 15, 0.4)
+        );
     }
 
     private static DateUtils createMarchBreak() {
-        DateUtils marchBreak = new DateUtils();
-        marchBreak.setHoliday("March Break");
-        marchBreak.setStartDate("03-10");
-        marchBreak.setEndDate("03-14");
-        marchBreak.setHolidayMessage("Enjoy your March Break Pokemon Spawns!");
-
-        PokemonData togekiss = createPokemon("togekiss", 15, 0.7);
-        PokemonData leafeon = createPokemon("leafeon", 40, 0.3);
-
-        marchBreak.setPokemonEntityList(Arrays.asList(togekiss, leafeon));
-        return marchBreak;
+        return createHoliday(
+                "March Break",
+                "03-10",
+                "03-14",
+                "Enjoy your March Break Pokemon Spawns!",
+                createPokemon("togekiss", 15, 0.7),
+                createPokemon("leafeon", 40, 0.3)
+        );
     }
 
     private static DateUtils createIndependenceDay() {
-        DateUtils independenceDay = new DateUtils();
-        independenceDay.setHoliday("Independence Day");
-        independenceDay.setStartDate("07-04");
-        independenceDay.setHolidayMessage("Celebrate freedom with a Pikachu and Charizard!");
-
-        PokemonData pikachu = createPokemon("pikachu", 25, 0.7);
-        PokemonData charizard = createPokemon("charizard", 40, 0.3);
-
-        independenceDay.setPokemonEntityList(Arrays.asList(pikachu, charizard));
-        return independenceDay;
+        return createHoliday(
+                "Independence Day",
+                "07-04",
+                null,
+                "Celebrate freedom with a Pikachu and Charizard!",
+                createPokemon("pikachu", 25, 0.7),
+                createPokemon("charizard", 40, 0.3)
+        );
     }
 
     private static DateUtils createThanksgiving() {
-        DateUtils thanksgiving = new DateUtils();
-        thanksgiving.setHoliday("Thanksgiving");
-        thanksgiving.setStartDate("11-25");
-        thanksgiving.setHolidayMessage("Give thanks with Farfetch'd and Squirtle!");
-
-        PokemonData farfetchd = createPokemon("farfetchd", 20, 0.5);
-        PokemonData squirtle = createPokemon("squirtle", 10, 0.5);
-
-        thanksgiving.setPokemonEntityList(Arrays.asList(farfetchd, squirtle));
-        return thanksgiving;
+        return createHoliday(
+                "Thanksgiving",
+                "11-25",
+                null,
+                "Give thanks with Farfetch'd and Squirtle!",
+                createPokemon("farfetchd", 20, 0.5),
+                createPokemon("squirtle", 10, 0.5)
+        );
     }
 
     private static DateUtils createHalloween() {
-        DateUtils halloween = new DateUtils();
-        halloween.setHoliday("Halloween");
-        halloween.setStartDate("10-31");
-        halloween.setHolidayMessage("Spooky season with Gastly and Pumpkaboo!");
-
-        PokemonData gastly = createPokemon("gastly", 25, 0.6);
-        PokemonData pumpkaboo = createPokemon("pumpkaboo", 20, 0.4);
-
-        halloween.setPokemonEntityList(Arrays.asList(gastly, pumpkaboo));
-        return halloween;
+        return createHoliday(
+                "Halloween",
+                "10-31",
+                null,
+                "Spooky season with Gastly and Pumpkaboo!",
+                createPokemon("gastly", 25, 0.6),
+                createPokemon("pumpkaboo", 20, 0.4)
+        );
     }
 
     private static DateUtils createChristmas() {
-        DateUtils christmas = new DateUtils();
-        christmas.setHoliday("Christmas");
-        christmas.setStartDate("12-25");
-        christmas.setHolidayMessage("Merry Christmas with Delibird and Snorlax!");
+        return createHoliday(
+                "Christmas",
+                "12-25",
+                null,
+                "Merry Christmas with Delibird and Snorlax!",
+                createPokemon("delibird", 15, 0.7, "minecraft:plains", "minecraft:forest"),
+                createPokemon("snorlax", 35, 0.3, "minecraft:plains", "minecraft:forest")
+        );
+    }
 
-        PokemonData delibird = createPokemon("delibird", 15, 0.7, "minecraft:plains", "minecraft:forest");
-        PokemonData snorlax = createPokemon("snorlax", 35, 0.3, "minecraft:plains", "minecraft:forest");
-
-        christmas.setPokemonEntityList(Arrays.asList(delibird, snorlax));
-        return christmas;
+    private static DateUtils createHoliday(String name, String startDate, String endDate,
+                                           String message, PokemonData... pokemonData) {
+        DateUtils holiday = new DateUtils();
+        holiday.setHoliday(name);
+        holiday.setStartDate(startDate);
+        holiday.setEndDate(endDate);
+        holiday.setHolidayMessage(message);
+        holiday.setPokemonEntityList(Arrays.asList(pokemonData));
+        return holiday;
     }
 
     private static PokemonData createPokemon(String name, int level, double spawnRate, String... biomes) {
         PokemonData pokemon = new PokemonData();
         pokemon.setName(name);
         pokemon.setLevel(level);
-        pokemon.setSpawn_rate(spawnRate);
+        pokemon.setSpawnRate(spawnRate);
 
-        Set<String> allowedBiomes = (biomes.length > 0) ? new HashSet<>(Arrays.asList(biomes)) : Collections.emptySet();
+        Set<String> allowedBiomes = (biomes.length > 0) ?
+                new HashSet<>(Arrays.asList(biomes)) :
+                Collections.emptySet();
         pokemon.setAllowedBiomes(allowedBiomes);
 
         return pokemon;

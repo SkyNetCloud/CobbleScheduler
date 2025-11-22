@@ -1,8 +1,9 @@
-# Version 0.0.3
+# Version 0.1.0 [1.7 Cobblemon]
 
-## [0.0.3] - Beta Release
+## [0.1.0] - Release 
 
-### ✨ Added
+### ✨ Removed
+-  DebugMode command. 
 
-- Added a DebugMode command for debugging purposes. [Don't Enable It]
-- Added a new command called "toggledebug" to enable DebugMode.
+## Fixed 
+  - Fixed console spam making server crash

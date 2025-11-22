@@ -2,20 +2,20 @@ package ca.skynetcloud.cobblescheduler.utils;
 
 import ca.skynetcloud.cobblescheduler.config.Config;
 import net.kyori.adventure.text.Component;
-import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.ServerPlayerEntity;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
-import static ca.skynetcloud.cobblescheduler.CobbleScheduler.miniMessage;
+import static ca.skynetcloud.cobblescheduler.CobbleScheduler.MINI_MESSAGE;
 
 public class MessageUtils {
 
     private static Instant lastMessageSent = Instant.MIN;
 
-    public static void sendMessage(ServerPlayer player, Config config) {
+    public static void sendMessage(ServerPlayerEntity player, Config config) {
         if (!config.isSendMessagesEnabled()) {
             return;
         }
@@ -36,7 +36,7 @@ public class MessageUtils {
 
                 String holidayMsg = holiday.getHolidayMessage();
 
-                Component messageComponent = miniMessage.deserialize(holidayMsg);
+                Component messageComponent = MINI_MESSAGE.deserialize(holidayMsg);
                 player.sendMessage(messageComponent);
 
 

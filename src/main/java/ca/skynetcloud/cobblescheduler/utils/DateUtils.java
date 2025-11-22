@@ -1,7 +1,5 @@
 package ca.skynetcloud.cobblescheduler.utils;
 
-import ca.skynetcloud.cobblescheduler.CobbleScheduler;
-
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -13,7 +11,6 @@ public class DateUtils {
     private String endDate;
     private List<PokemonData> pokemonEntityList;
     private String holidayMessage;
-    private static Boolean Debug = false;
 
     public String getHoliday() {
         return holiday;
@@ -66,9 +63,7 @@ public class DateUtils {
         String todayDate = getTodayDate();
 
         if (endDate == null) {
-            if (Debug) {
-                CobbleScheduler.logger.info("Info: End date is null!");
-            }
+            // LOGGER.info("Info: End date is null!");
             return false;
         }
 

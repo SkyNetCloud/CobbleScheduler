@@ -1,29 +1,31 @@
 package ca.skynetcloud.cobblescheduler.commands;
 
 import ca.skynetcloud.cobblescheduler.CobbleScheduler;
-import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
-import me.lucko.fabric.api.permissions.v0.Permissions;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.network.chat.Component;
+import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.text.Text;
 
+import static net.minecraft.server.command.CommandManager.literal;
 
 public class SchedulerCommands {
 
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+    public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
         dispatcher.register(
-                Commands.literal("CobbleScheduler")
-                        .requires(source -> source.hasPermission(2)).requires(Permissions.require("cobblescheduler.reload"))
-                        .then(Commands.literal("reload")
-                                .executes(SchedulerCommands::reloadConfig))
+                literal("cobblescheduler")
+                        .requires(source -> source.hasPermissionLevel(2)) // OP only
+                        .then(literal("reload")
+                                .executes(SchedulerCommands::reloadConfig)
+                        )
         );
     }
 
-    private static int reloadConfig(CommandContext<CommandSourceStack> context) {
+    private static int reloadConfig(CommandContext<ServerCommandSource> context) {
         CobbleScheduler.reloadConfig();
-        context.getSource().sendSuccess(() -> Component.literal("CobbleScheduler config reloaded!"), true);
-        return Command.SINGLE_SUCCESS;
+        context.getSource().sendFeedback(
+                () -> Text.literal("§aCobbleScheduler config reloaded!"),
+                true
+        );
+        return 1;
     }
 }
